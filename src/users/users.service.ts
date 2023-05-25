@@ -2,10 +2,14 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma.service';
+import { UtilsService } from 'src/utils/utils.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly utilsService: UtilsService,
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
     const { email, name } = createUserDto;
@@ -27,7 +31,10 @@ export class UsersService {
   }
 
   async findAll() {
-    return await this.prisma.user.findMany();
+    const users = await this.prisma.user.findMany();
+    return users.map((user) =>
+      this.utilsService.excludeFields(user, ['password']),
+    );
   }
 
   async findUserById(id: string) {
