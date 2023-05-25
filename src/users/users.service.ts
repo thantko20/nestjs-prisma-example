@@ -14,7 +14,7 @@ export class UsersService {
   async create(createUserDto: CreateUserDto) {
     const { email, name } = createUserDto;
     if (!email || !name) {
-      throw new BadRequestException();
+      throw new BadRequestException('FIELDS_MISSING');
     }
 
     const existingUserWithEmail = await this.prisma.user.findUnique({

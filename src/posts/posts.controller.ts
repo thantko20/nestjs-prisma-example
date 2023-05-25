@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('posts')
 export class PostsController {
@@ -12,6 +13,7 @@ export class PostsController {
     return this.postsService.create(createPostDto);
   }
 
+  @Public()
   @Get()
   findAll() {
     return this.postsService.findAll();
