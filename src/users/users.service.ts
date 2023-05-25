@@ -1,8 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -10,6 +15,10 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly utilsService: UtilsService,
   ) {}
+
+  private userWithoutSensitiveInfo(user: User) {
+    return this.utilsService.excludeFields(user, ['password']);
+  }
 
   async create(createUserDto: CreateUserDto) {
     const { email, name } = createUserDto;
@@ -25,26 +34,44 @@ export class UsersService {
       throw new BadRequestException('USER_WITH_EMAIL_ALREADY_EXISTS');
     }
 
-    return await this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: createUserDto,
     });
+    return this.userWithoutSensitiveInfo(user);
   }
 
   async findAll() {
     const users = await this.prisma.user.findMany();
-    return users.map((user) =>
-      this.utilsService.excludeFields(user, ['password']),
-    );
+    return users.map(this.userWithoutSensitiveInfo);
   }
 
   async findUserById(id: string) {
-    return await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.prisma.user.findUnique({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException('USER_NOT_FOUND');
+    }
+
+    return this.userWithoutSensitiveInfo(user);
+  }
+
+  async findUserByEmail(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    return this.userWithoutSensitiveInfo(user);
   }
 
   async updateUser(id: string, updateUserDto: UpdateUserDto) {
-    return await this.prisma.user.update({
+    const user = await this.findUserById(id);
+
+    if (!user) {
+      throw new NotFoundException('USER_NOT_FOUND');
+    }
+
+    const updatedUser = await this.prisma.user.update({
       where: { id },
       data: updateUserDto,
     });
+
+    return this.userWithoutSensitiveInfo(updatedUser);
   }
 }
