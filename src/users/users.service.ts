@@ -6,19 +6,10 @@ import {
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UtilsService } from 'src/utils/utils.service';
-import { User } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly utilsService: UtilsService,
-  ) {}
-
-  private userWithoutSensitiveInfo(user: User) {
-    return this.utilsService.excludeFields(user, ['password']);
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto) {
     const { email, name } = createUserDto;
@@ -34,15 +25,13 @@ export class UsersService {
       throw new BadRequestException('USER_WITH_EMAIL_ALREADY_EXISTS');
     }
 
-    const user = await this.prisma.user.create({
+    return await this.prisma.user.create({
       data: createUserDto,
     });
-    return this.userWithoutSensitiveInfo(user);
   }
 
   async findAll() {
-    const users = await this.prisma.user.findMany();
-    return users.map(this.userWithoutSensitiveInfo);
+    return await this.prisma.user.findMany();
   }
 
   async findUserById(id: string) {
@@ -52,12 +41,11 @@ export class UsersService {
       throw new NotFoundException('USER_NOT_FOUND');
     }
 
-    return this.userWithoutSensitiveInfo(user);
+    return user;
   }
 
   async findUserByEmail(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    return this.userWithoutSensitiveInfo(user);
+    return await this.prisma.user.findUnique({ where: { email } });
   }
 
   async updateUser(id: string, updateUserDto: UpdateUserDto) {
@@ -67,11 +55,9 @@ export class UsersService {
       throw new NotFoundException('USER_NOT_FOUND');
     }
 
-    const updatedUser = await this.prisma.user.update({
+    return await this.prisma.user.update({
       where: { id },
       data: updateUserDto,
     });
-
-    return this.userWithoutSensitiveInfo(updatedUser);
   }
 }
